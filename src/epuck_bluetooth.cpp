@@ -66,30 +66,8 @@ int recv_rep(int fd, char *rep)
 	return n;
 }
 
-int cmd_set_spd(char *cmd, int speedLeft, int speedRight)
-{
-	cmd[0] = -'D';
-	cmd[1] = speedLeft&0xFF;
-	cmd[2] = (speedLeft>>8)&0xFF;
-	cmd[3] = speedRight&0xFF;
-	cmd[4] = (speedRight>>8)&0xFF;
-	cmd[5] = 0;
-	return 5;
-}
 
-int cmd_get_spd(char *cmd)
-{
-	cmd[0] = -'E';
-	cmd[1] = 0;
-	return 1;
-}
 
-int  cmd_get_sIR(char *cmd)
-{
-	cmd[0] = -'N';
-	cmd[1] = 0;
-	return 1;
-}
 
 int get_values(char *str, int len, int *val)
 {
@@ -102,4 +80,103 @@ int get_values(char *str, int len, int *val)
 		val[i/2] = (msb << 8 ) | (lsb & 0xff);
 		i+=2;
 	}
+}
+
+int cmd_get_acc(char *str)//[-'a'] : get the code to get Accel
+{
+	cmd[0] = -'a';
+	cmd[1] = 0;
+	return 1;
+}
+int cmd_get_bat(char *str)//[-'b'] : get battery
+{
+	cmd[0] = -'b';
+	cmd[1] = 0;
+	return 1;
+}
+
+int cmd_set_spd(char *cmd, int speedLeft, int speedRight)//[-'D'][...] : get the code to set speed 
+{
+	cmd[0] = -'D';
+	cmd[1] = speedLeft&0xFF;
+	cmd[2] = (speedLeft>>8)&0xFF;
+	cmd[3] = speedRight&0xFF;
+	cmd[4] = (speedRight>>8)&0xFF;
+	cmd[5] = 0;
+	return 5;
+}
+
+int cmd_get_spd(char *cmd)//[-'E'] : get the code to get speed 
+{
+	cmd[0] = -'E';
+	cmd[1] = 0;
+	return 1;
+}
+
+int cmd_get_gyr(char *cmd)//[-'g'] : get the code to get gyr
+{
+	cmd[0] = -'g';
+	cmd[1] = 0;
+	return 1;
+}
+int cmd_get_cam(char *cmd)//[-'I'] : get the code to get cam
+{
+	cmd[0] = -'I';
+	cmd[1] = 0;
+	return 1;
+}
+int cmd_set_led(buff+len,i,led_state[i])(char *cmd)//[-'L'][n][state] : get the code to set LEDs
+{
+	cmd[0] = -'L';
+	cmd[1] = 0;
+	return 1;
+}
+int cmd_get_flr(buff+len)//[-'M'] : get the code to get floor sensor
+{
+	cmd[0] = -'M';
+	cmd[1] = 0;
+	return 1;
+}
+int  cmd_get_sIR(char *cmd)//[-'N'] : get the code to get IR sensors states
+{
+	cmd[0] = -'N';
+	cmd[1] = 0;
+	return 1;
+}
+int cmd_get_lgt(char *cmd)//[-'O'] : get the code to get light ambient state
+{
+	cmd[0] = -'O';
+	cmd[1] = 0;
+	return 1;
+}
+int cmd_set_mot(char *cmd)//[-'P'] : get the code to set motor step
+{
+	cmd[0] = -'P';
+	cmd[1] = 0;
+	return 1;
+}
+
+int cmd_get_mot(char *cmd)//[-'Q'] : get the code to get motor step
+{
+	cmd[0] = -'Q';
+	cmd[1] = 0;
+	return 1;
+}
+int cmd_get_tmp(char *cmd)//[-'t'] : get the code to get temperature
+{
+	cmd[0] = -'t';
+	cmd[1] = 0;
+	return 1;
+}
+int cmd_get_mcA(char *cmd)//[-'u'] : get the code to get microphone amplitude
+{
+	cmd[0] = -'u';
+	cmd[1] = 0;
+	return 1;
+}
+int cmd_get_mcB(char *cmd)//[-'U'] : get the code to get microphone buffer
+{
+	cmd[0] = -'U';
+	cmd[1] = 0;
+	return 1;
 }

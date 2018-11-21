@@ -8,36 +8,60 @@
 #include "ros_epuck_v2/ros_epuck_v2.hpp"
 #include "ros_epuck_v2/epuck_bluetooth.hpp"
 
+#define EPUCK_RAD 0.035
+
+#define IR_MIN_RANGE 0.005
+#define IR_MAX_RANGE 0.05
+#define IR_FIELD_VIEW 0.26
+#define IR_MODEL(X)  0.5/sqrt(X)
+
 Epuck::Epuck(ros::NodeHandle &n, const char * path)
 {
 	m_node = n;
-//	m_epuck_fd = init_connection(path);
-//	if(m_epuck_fd>-1)
-//		std::cout << "Connected ..." << std::endl;
-//	
+	m_epuck_fd = init_connection(path);
+	if(m_epuck_fd>-1)
+		std::cout << "Connected ..." << std::endl;
+	
 	init_IR_sensors();
 	init_laserScan();
 }
 
 void Epuck::update()
 {
-//	char buff[20];
-//	int len = cmd_get_spd(buff);//get the code to get speed 
-//	len += cmd_set_spd(buff+len,m_speedLeft,m_speedRight);//get the code to set speed 
-//	len += cmd_get_sIR(buff+len);//get the code to get IR sensors states
-//	send_cmd(m_epuck_fd,buff,len+1);//send cmd
+	char buff[20];
+	int len = 0;
+	//if(1)	len += cmd_get_acc(buff+len);                         	//[-'a'] : get the code to get Accel
+	//if(1)	len += cmd_get_bat(buff+len);                         	//[-'b'] : get battery
+	if(1)	len += cmd_set_spd(buff+len,m_speedLeft,m_speedRight);	//[-'D'][...] : get the code to set speed 
+	if(1)	len += cmd_get_spd(buff+len);                         	//[-'E'] : get the code to get speed 
+	//if(1)	len += cmd_get_gyr(buff+len);                         	//[-'g'] : get the code to get gyr
+	//if(1)	len += cmd_get_cam(buff+len);                         	//[-'I'] : get the code to get cam
 
-//	int values[10];
-//	int n = recv_rep(m_epuck_fd,buff);
-//	if(n>-1)
-//	{
-//		printSHORT(buff,n);
-//		get_values(buff,n-1,values);
-//		update_IR_sensors(values+2);
-//		update_laserScan(values+2);
-//	}
-	int values[8]={0,0,0,0,0,0,0,0};
-	update_laserScan(values);
+	//for(int i=0;i<NB_LED;i++)
+	//if(1)	len += cmd_set_led(buff+len,i,led_state[i]);          	//[-'L'][n][state] : get the code to set LEDs
+	
+	//if(1)	len += cmd_get_flr(buff+len);                         	//[-'M'] : get the code to get floor sensor
+	if(1)	len += cmd_get_sIR(buff+len);                         	//[-'N'] : get the code to get IR sensors states
+	//if(1)	len += cmd_get_lgt(buff+len);                         	//[-'O'] : get the code to get light ambient state
+	//if(1)	len += cmd_set_mot(buff+len);                         	//[-'P'] : get the code to set motor step
+	//if(1)	len += cmd_get_mot(buff+len);                         	//[-'Q'] : get the code to get motor step
+	//if(1)	len += cmd_get_tmp(buff+len);                         	//[-'t'] : get the code to get temperature
+	//if(1)	len += cmd_get_mcA(buff+len);                         	//[-'u'] : get the code to get microphone amplitude
+	//if(1)	len += cmd_get_mcB(buff+len);                         	//[-'U'] : get the code to get microphone buffer
+
+	send_cmd(m_epuck_fd,buff,len+1);//send cmd
+
+	int values[10];
+	int n = recv_rep(m_epuck_fd,buff);
+	if(n>-1)
+	{
+		printSHORT(buff,n);
+		get_values(buff,n-1,values);
+		update_IR_sensors(values+2);
+		update_laserScan(values+2);
+	}
+//	int values[8]={100,0,0,0,0,0,0,0};
+//	update_laserScan(values);
 }
 
 
@@ -56,9 +80,9 @@ void Epuck::init_IR_sensors()
 		ss << "epuckv2/base_IR_sensor" << i;
 		m_IR_sensors_msg[i].header.frame_id =  ss.str();
 		
-		m_IR_sensors_msg[i].field_of_view = 0.26;    // About 15 degrees...to be checked!
-		m_IR_sensors_msg[i].min_range = 0.005;       // 0.5 cm.
-		m_IR_sensors_msg[i].max_range = 0.05;        // 5 cm.                    
+		m_IR_sensors_msg[i].field_of_view = IR_FIELD_VIEW;    // About 15 degrees...to be checked!
+		m_IR_sensors_msg[i].min_range = IR_MIN_RANGE;       // 0.5 cm.
+		m_IR_sensors_msg[i].max_range = IR_MAX_RANGE;        // 5 cm.                    
 	}
 }
 
@@ -67,7 +91,7 @@ void Epuck::update_IR_sensors(int *IR_values)
 	for(int i=0; i<8; i++)
 	{
 		if(IR_values[i] > 0) 
-			m_IR_sensors_msg[i].range = 0.5/sqrt(IR_values[i]);  // Transform the analog value to a distance value in meters (given from field tests).
+			m_IR_sensors_msg[i].range = IR_MODEL(IR_values[i]);  // use the IR model to get meter from analog value
 		else
 			m_IR_sensors_msg[i].range = m_IR_sensors_msg[i].max_range;
 
@@ -91,8 +115,8 @@ void Epuck::init_laserScan()
 	m_laser_msg.angle_min = -M_PI/2.0;
 	m_laser_msg.angle_max = M_PI/2.0;
 	m_laser_msg.angle_increment = M_PI/18.0; // 10 degrees.
-	m_laser_msg.range_min = 0.005+0.035; // 0.5 cm + ROBOT_RADIUS.
-	m_laser_msg.range_max = 0.05+0.035; // 5 cm + ROBOT_RADIUS. 
+	m_laser_msg.range_min = IR_MIN_RANGE+EPUCK_RAD; // 0.5 cm + radius.
+	m_laser_msg.range_max = IR_MAX_RANGE+EPUCK_RAD; // 5 cm + radis. 
 	m_laser_msg.ranges.resize(19);
 	m_laser_msg.intensities.resize(19);
 	m_laser_pub = m_node.advertise<sensor_msgs::LaserScan>("scan", 10);
@@ -129,10 +153,10 @@ void Epuck::update_laserScan(int *IR_values)
 	{
 		float tempProx = 0;
 		for(int j=0;j<8;j++) tempProx += mask[i][j]*IR_values[j];
-		//std::cout << tempProx << " | ";
+		std::cout << tempProx << " | ";
 		if(tempProx > 0)
 		{
-			m_laser_msg.ranges[i] = (0.5/sqrt(tempProx))+0.035; //analog to meters.
+			m_laser_msg.ranges[i] = IR_MODEL(tempProx)+EPUCK_RAD; //analog to meters.
 			m_laser_msg.intensities[i] = tempProx; 
 		}
 		else
@@ -141,7 +165,7 @@ void Epuck::update_laserScan(int *IR_values)
 			m_laser_msg.intensities[i] = 0;
 		}
 	}
-	//std::cout << std::endl;
+	std::cout << std::endl;
 	m_laser_pub.publish(m_laser_msg);
 }
 
