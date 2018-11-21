@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
 	ros::Publisher pubSens = n.advertise<geometry_msgs::Twist>("epuckv2_sensors", 10);
 	ros::Rate loop_rate(rate);
 	
-	Epuck e(n,"/dev/rfcomm0");
+	Epuck epuck(n,"/dev/rfcomm0");
 
 //	int epuck = init_connection("/dev/rfcomm0");
 //	if(epuck>-1)
@@ -53,6 +53,9 @@ int main(int argc, char* argv[])
 		geometry_msgs::Twist cmd_vel;
 		cmd_vel.linear.x = linear_speed;
 		cmd_vel.angular.z = angular_speed;
+		epuck.set_spd(-coef*(-4.*linear_speed+D*angular_speed)/(4.*r), coef*(4.*linear_speed+D*angular_speed)/(4.*r));
+		
+		epuck.update();
 //		int speedLeft = -coef*(-4.*linear_speed+D*angular_speed)/(4.*r);
 //		int speedRight = coef*(4.*linear_speed+D*angular_speed)/(4.*r);
 //		
