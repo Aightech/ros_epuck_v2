@@ -6,6 +6,7 @@
 #include "sensor_msgs/Range.h"
 #include "sensor_msgs/LaserScan.h"
 #include "std_msgs/Float32.h"
+#include "std_msgs/Float32MultiArray.h"
 
 class Epuck
 {
@@ -33,6 +34,9 @@ public:
 	
 	void init_laserScan();
 	void update_laserScan(int *IR_values);
+
+	void init_lasers();
+	void update_lasers(int *IR_values);
 	
 	void init_cmdSpeedLeft();
 
@@ -45,6 +49,8 @@ public:
   
 	void update();
 private:
+	int m_time=0;
+	bool m_isConnected=false;
 	int m_epuck_fd;
 	int m_speedLeft=0;
 	int m_speedRight=0;
@@ -55,6 +61,8 @@ private:
 	
 	ros::Publisher m_laser_pub;
 	sensor_msgs::LaserScan m_laser_msg;
+
+	ros::Publisher m_lasers_pub;
 
 	ros::Subscriber subCmdSpdLeft;
 	ros::Subscriber subCmdSpdRight;

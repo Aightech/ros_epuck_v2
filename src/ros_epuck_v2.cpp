@@ -7,8 +7,6 @@
 #include "ros_epuck_v2/ros_epuck_v2.hpp"
 #include "ros_epuck_v2/epuck_bluetooth.hpp"
 
-
-
 #define EPUCK_RAD 0.035
 
 #define IR_MIN_RANGE 0.005
@@ -16,18 +14,34 @@
 #define IR_FIELD_VIEW 0.26
 #define IR_MODEL(X)  0.5/sqrt(X)
 
+/**
+ * Constructor
+ * needs the a ros node and a path to the epuck bluetooth devices : ex "/dev/refcomm0"
+ **/
 Epuck::Epuck(ros::NodeHandle &n, const char * path)
 {
 	m_node = n;
+	//try to connect to the epuck
 	m_epuck_fd = init_connection(path);
 	if(m_epuck_fd>-1)
-		std::cout << "Connected ..." << std::endl;
+		{
+			std::cout << "[INFO EPUCK] Connected ..." << std::endl;
+
+			//init all the publishers
+			init_IR_sensors();
+			init_laserScan();
+			init_lasers();
 	
-	init_IR_sensors();
-	init_laserScan();
-	
-	init_cmdSpeedLeft();
-	init_cmdSpeedRight();
+			init_cmdSpeedLeft();
+			init_cmdSpeedRight();
+
+			//set the epuck as connected
+			m_isConnected = true;
+
+		}
+	else
+		std::cout << "[INFO EPUCK] Connection failed ..." << std::endl;
+
 }
 
 void Epuck::update()
@@ -64,27 +78,40 @@ void Epuck::update()
 	int n = recv_rep(m_epuck_fd,buff);
 	if(n>-1)
 	{
-		printSHORT(buff,n);
+		//printSHORT(buff,n);
+		std::cout << "[";
+		for(int i=0;i<10;i++) std::cout << (i==m_time%10)?" ":"o";
+		std::cout << "]" << "\xd";
+
+		//send requests of the differents actuator and get the vvalues of the sensors
 		get_values(buff,n-1,values);
+
+		//update the different topic
 		update_IR_sensors(values+2);
 		update_laserScan(values+2);
+		update_lasers(values+2);
 	}
+	m_time++;
 //	int values[8]={100,0,0,0,0,0,0,0};
 //	update_laserScan(values);
 }
 
 
-
+/**
+ * initialize IR sensors:
+ **/
 void Epuck::init_IR_sensors()
 {
-	for(int i=0; i<8; i++)
+	for(int i=0; i<8; i++)//for each ir sensors
 	{
+		//init a topic
 		std::stringstream ss;
 		ss.str("");
 		ss << "IR_sensor" << i;
 		m_IR_sensors_pub[i] = m_node.advertise<sensor_msgs::Range>(ss.str(), 10);
 		m_IR_sensors_msg[i].radiation_type = sensor_msgs::Range::INFRARED;
-		
+
+		//set frame
 		ss.str("");
 		ss << "epuckv2/base_IR_sensor" << i;
 		m_IR_sensors_msg[i].header.frame_id =  ss.str();
@@ -95,26 +122,55 @@ void Epuck::init_IR_sensors()
 	}
 }
 
+/**
+ *  update IR sensors:
+ * use a model to update the value of the rostopic value from the values sent by the epuck
+ **/
 void Epuck::update_IR_sensors(int *IR_values)
 {
-	for(int i=0; i<8; i++)
+	for(int i=0; i<8; i++)//for each sensors
 	{
-		if(IR_values[i] > 0) 
+		if(IR_values[i] > 0)
 			m_IR_sensors_msg[i].range = IR_MODEL(IR_values[i]);  // use the IR model to get meter from analog value
-		else
+		else//if too far we got nothing
 			m_IR_sensors_msg[i].range = m_IR_sensors_msg[i].max_range;
 
+		//clip the values
 		if(m_IR_sensors_msg[i].range > m_IR_sensors_msg[i].max_range)
 			m_IR_sensors_msg[i].range = m_IR_sensors_msg[i].max_range;
 		
 		if(m_IR_sensors_msg[i].range < m_IR_sensors_msg[i].min_range)
 			m_IR_sensors_msg[i].range = m_IR_sensors_msg[i].min_range;
 
+		//publish the values
 		m_IR_sensors_msg[i].header.stamp = ros::Time::now();
 		m_IR_sensors_pub[i].publish(m_IR_sensors_msg[i]);
 	}
 }
 
+/**
+ * initialize laser topic:
+ **/
+void Epuck::init_lasers()
+{
+	m_lasers_pub = m_node.advertise<std_msgs::Float32MultiArray>("lasers", 10);
+}
+
+/**
+ * update the value of the lasers topics :
+ **/
+void Epuck::update_lasers(int *IR_values)
+{
+    std_msgs::Float32MultiArray laser_msg;
+    float val;
+    for (size_t i = 5; i < 5+6; ++i)//clip the value beetween 0 and 100 
+	    laser_msg.data.push_back( ( (val=IR_MODEL(IR_values[i%8]))>0.1)?-1:(val<0.01)?0:val*1000 );
+    m_lasers_pub.publish(laser_msg);
+}
+
+/**
+ * initialize laser scan topic:
+ **/
 void Epuck::init_laserScan()
 {
 	std::stringstream ss;
@@ -131,6 +187,9 @@ void Epuck::init_laserScan()
 	m_laser_pub = m_node.advertise<sensor_msgs::LaserScan>("scan", 10);
 }
 
+/**
+ * Update laser scan by interpolling 19 point from the value of the IR sensors:
+ **/
 void Epuck::update_laserScan(int *IR_values)
 {
 	//Using the 6 IR sensors on the front to simulate 19 laser scan points.
@@ -138,31 +197,31 @@ void Epuck::update_laserScan(int *IR_values)
 	// -90|-80|-70|-60|-50|-40|-30|-20|-10|  0| 10| 20| 30| 40| 50| 60| 70| 80|-90|
 	//mask of interpolation
 	float mask[19][8] = {	{0	,0	,1	,0	,0	,0	,0	,0	},
-				{0	,1./5	,4./5	,0	,0	,0	,0	,0	},
-				{0	,2./5	,3./5	,0	,0	,0	,0	,0	},
-				{0	,3./5	,2./5	,0	,0	,0	,0	,0	},
-				{0	,4./5	,1./5	,0	,0	,0	,0	,0	},
+				{0	,1./5.	,4./5.	,0	,0	,0	,0	,0	},
+				{0	,2./5.	,3./5.	,0	,0	,0	,0	,0	},
+				{0	,3./5.	,2./5.	,0	,0	,0	,0	,0	},
+				{0	,4./5.	,1./5.	,0	,0	,0	,0	,0	},
 				{0	,1	,0	,0	,0	,0	,0	,0	},
-				{1./3	,2./3	,0	,0	,0	,0	,0	,0	},
-				{2./3	,1/3	,0	,0	,0	,0	,0	,0	},
+				{1./3.	,2./3.	,0	,0	,0	,0	,0	,0	},
+				{2./3.	,1/3.	,0	,0	,0	,0	,0	,0	},
 				{1	,0	,0	,0	,0	,0	,0	,0	},
-				{1./2	,0	,0	,0	,0	,0	,0	,1./2	},
+				{1./2.	,0	,0	,0	,0	,0	,0	,1./2.	},
 				{0	,0	,0	,0	,0	,0	,0	,1	},
-				{0	,0	,0	,0	,0	,0	,1./3	,2./3	},
-				{0	,0	,0	,0	,0	,0	,2./3	,1./3	},
+				{0	,0	,0	,0	,0	,0	,1./3.	,2./3.	},
+				{0	,0	,0	,0	,0	,0	,2./3.	,1./3.	},
 				{0	,0	,0	,0	,0	,0	,1	,0	},
-				{0	,0	,0	,0	,0	,1./5	,4./5	,0	},
-				{0	,0	,0	,0	,0	,2./5	,3./5	,0	},
-				{0	,0	,0	,0	,0	,3./5	,2./5	,0	},
-				{0	,0	,0	,0	,0	,4./5	,1./5	,0	},
+				{0	,0	,0	,0	,0	,1./5.	,4./5.	,0	},
+				{0	,0	,0	,0	,0	,2./5.	,3./5.	,0	},
+				{0	,0	,0	,0	,0	,3./5.	,2./5.	,0	},
+				{0	,0	,0	,0	,0	,4./5.	,1./5.	,0	},
 				{0	,0	,0	,0	,0	,1	,0	,0	}
 				};
-
+	// for(int j=0;j<8;j++) std::cout << IR_values[j] << " | ";
+	// std::cout << std::endl << std::endl;
 	for(int i=0;i<19;i++)
 	{
 		float tempProx = 0;
 		for(int j=0;j<8;j++) tempProx += mask[i][j]*IR_values[j];
-		std::cout << tempProx << " | ";
 		if(tempProx > 0)
 		{
 			m_laser_msg.ranges[i] = IR_MODEL(tempProx)+EPUCK_RAD; //analog to meters.
@@ -173,28 +232,42 @@ void Epuck::update_laserScan(int *IR_values)
 			m_laser_msg.ranges[i] = m_laser_msg.range_max;
 			m_laser_msg.intensities[i] = 0;
 		}
+		//std::cout << m_laser_msg.ranges[i] << " | ";
+					
 	}
-	std::cout << std::endl;
+	// td::cout << std::endl;
 	m_laser_pub.publish(m_laser_msg);
 }
 
+/**
+ * initialize left wheel speed subscriber
+ **/
 void Epuck::init_cmdSpeedLeft()
 {
 	subCmdSpdLeft = m_node.subscribe("/simu_fastsim/speed_left", 10, &Epuck::speed_leftCallback,this);
 }
 
+/**
+ * initialize right wheel speed subscriber:
+ **/
 void Epuck::init_cmdSpeedRight()
 {
 	
 	subCmdSpdRight = m_node.subscribe("/simu_fastsim/speed_right", 10,&Epuck::speed_rightCallback,this);
 }
 
+/**
+ * callback function use when the left wheel tipic is updated:
+ **/
 void Epuck::speed_leftCallback(const std_msgs::Float32::ConstPtr& msg)
 {
 	float conv = msg->data*1000/0.8;
 	m_speedLeft = conv;
 }
 
+/**
+ * callback function use when the left wheel tipic is updated:
+ **/
 void Epuck::speed_rightCallback(const std_msgs::Float32::ConstPtr& msg)
 {
 	float conv = msg->data*1000/0.8;
