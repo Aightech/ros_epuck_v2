@@ -79,9 +79,10 @@ void Epuck::update()
 	if(n>-1)
 	{
 		//printSHORT(buff,n);
-		std::cout << "[";
-		for(int i=0;i<10;i++) std::cout << (i==m_time%10)?" ":"o";
-		std::cout << "]" << "\xd";
+		
+		char str[] = "o        ";
+		for(int i=0;i<10;i++) str[i]= (i==abs((m_time%10 - (m_time/10)%2*9)%10))?'o':' ';
+		std::cout << "[INFO EPUCK] running ... [" << str << "]"  <<"\xd"<<std::flush;
 
 		//send requests of the differents actuator and get the vvalues of the sensors
 		get_values(buff,n-1,values);
