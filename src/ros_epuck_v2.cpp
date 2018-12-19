@@ -191,12 +191,12 @@ void Epuck::init_cmdSpeedRight()
 
 void Epuck::speed_leftCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-	float conv = msg->data*200/0.8;
+	float conv = msg->data*1000/0.8;
 	m_speedLeft = conv;
 }
 
 void Epuck::speed_rightCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-	float conv = msg->data*200/0.8;
+	float conv = msg->data*1000/0.8;
 	m_speedRight = conv;
 }

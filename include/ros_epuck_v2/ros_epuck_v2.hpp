@@ -46,8 +46,8 @@ public:
 	void update();
 private:
 	int m_epuck_fd;
-	int m_speedLeft;
-	int m_speedRight;
+	int m_speedLeft=0;
+	int m_speedRight=0;
 	ros::NodeHandle m_node;
 	
 	ros::Publisher m_IR_sensors_pub[8];

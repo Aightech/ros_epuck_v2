@@ -30,6 +30,7 @@ int main(int argc, char* argv[])
 	ros::Rate loop_rate(rate);
 	
 	Epuck epuck(n,"/dev/rfcomm0");
+	//	std::cout << "hey" << std::endl;
 
 	while(ros::ok())
 	{

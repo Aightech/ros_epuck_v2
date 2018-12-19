@@ -43,7 +43,9 @@ int combine(char lsb, char msb)
 
 int init_connection(const char *path)
 {
+	
 	int i,fd = open(path, O_RDWR | O_NOCTTY);
+	//	std::cout << fd << std::endl;
 	if(fd < 0)
 		for(i=0;i<3;i++,sleep(1))
 			if((fd = open(path, O_RDWR | O_NOCTTY))>-1)
@@ -96,8 +98,10 @@ int cmd_get_bat(char *cmd)//[-'b'] : get battery
 	return 1;
 }
 
-int cmd_set_spd(char *cmd, int speedLeft, int speedRight)//[-'D'][...] : get the code to set speed 
+int cmd_set_spd(char *cmd, int speedLeft, int speedRight)//[-'D'][...]: get the code to set speed ( speed €[-1000,1000])
 {
+	speedLeft = (speedLeft>1000)?1000:(speedLeft<-1000)?-1000:speedLeft;
+	speedRight = (speedRight>1000)?1000:(speedRight<-1000)?-1000:speedRight;
 	cmd[0] = -'D';
 	cmd[1] = speedLeft&0xFF;
 	cmd[2] = (speedLeft>>8)&0xFF;
