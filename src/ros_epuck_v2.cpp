@@ -1,12 +1,13 @@
 #include "ros/ros.h"
 #include "geometry_msgs/Twist.h"
-#include "sensor_msgs/Joy.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include "ros_epuck_v2/ros_epuck_v2.hpp"
 #include "ros_epuck_v2/epuck_bluetooth.hpp"
+
+
 
 #define EPUCK_RAD 0.035
 
@@ -24,12 +25,20 @@ Epuck::Epuck(ros::NodeHandle &n, const char * path)
 	
 	init_IR_sensors();
 	init_laserScan();
+	
+	init_cmdSpeedLeft();
+	init_cmdSpeedRight();
 }
 
 void Epuck::update()
 {
 	char buff[20];
 	int len = 0;
+
+	//
+	//Fill the local buffer with the differents comands
+	//
+	
 	//if(1)	len += cmd_get_acc(buff+len);                         	//[-'a'] : get the code to get Accel
 	//if(1)	len += cmd_get_bat(buff+len);                         	//[-'b'] : get battery
 	if(1)	len += cmd_set_spd(buff+len,m_speedLeft,m_speedRight);	//[-'D'][...] : get the code to set speed 
@@ -49,7 +58,7 @@ void Epuck::update()
 	//if(1)	len += cmd_get_mcA(buff+len);                         	//[-'u'] : get the code to get microphone amplitude
 	//if(1)	len += cmd_get_mcB(buff+len);                         	//[-'U'] : get the code to get microphone buffer
 
-	send_cmd(m_epuck_fd,buff,len+1);//send cmd
+	send_cmd(m_epuck_fd,buff,len+1);//send cmd to the epuck
 
 	int values[10];
 	int n = recv_rep(m_epuck_fd,buff);
@@ -169,3 +178,25 @@ void Epuck::update_laserScan(int *IR_values)
 	m_laser_pub.publish(m_laser_msg);
 }
 
+void Epuck::init_cmdSpeedLeft()
+{
+	subCmdSpdLeft = m_node.subscribe("/simu_fastsim/speed_left", 10, &Epuck::speed_leftCallback,this);
+}
+
+void Epuck::init_cmdSpeedRight()
+{
+	
+	subCmdSpdRight = m_node.subscribe("/simu_fastsim/speed_right", 10,&Epuck::speed_rightCallback,this);
+}
+
+void Epuck::speed_leftCallback(const std_msgs::Float32::ConstPtr& msg)
+{
+	float conv = msg->data*200/0.8;
+	m_speedLeft = conv;
+}
+
+void Epuck::speed_rightCallback(const std_msgs::Float32::ConstPtr& msg)
+{
+	float conv = msg->data*200/0.8;
+	m_speedRight = conv;
+}

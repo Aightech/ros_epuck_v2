@@ -10,7 +10,8 @@
 
 void printBIN(char *str,int n)
 {
-	printf("(BIN)\t |");
+
+  printf("(BIN)\t |");
 	int i=0;
 	while(i<n)
 		printf("%d|",(int)str[i++]);
