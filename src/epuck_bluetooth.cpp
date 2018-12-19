@@ -82,13 +82,13 @@ int get_values(char *str, int len, int *val)
 	}
 }
 
-int cmd_get_acc(char *str)//[-'a'] : get the code to get Accel
+int cmd_get_acc(char *cmd)//[-'a'] : get the code to get Accel
 {
 	cmd[0] = -'a';
 	cmd[1] = 0;
 	return 1;
 }
-int cmd_get_bat(char *str)//[-'b'] : get battery
+int cmd_get_bat(char *cmd)//[-'b'] : get battery
 {
 	cmd[0] = -'b';
 	cmd[1] = 0;
@@ -125,13 +125,13 @@ int cmd_get_cam(char *cmd)//[-'I'] : get the code to get cam
 	cmd[1] = 0;
 	return 1;
 }
-int cmd_set_led(buff+len,i,led_state[i])(char *cmd)//[-'L'][n][state] : get the code to set LEDs
+int cmd_set_led(char *cmd)//[-'L'][n][state] : get the code to set LEDs
 {
 	cmd[0] = -'L';
 	cmd[1] = 0;
 	return 1;
 }
-int cmd_get_flr(buff+len)//[-'M'] : get the code to get floor sensor
+int cmd_get_flr(char *cmd)//[-'M'] : get the code to get floor sensor
 {
 	cmd[0] = -'M';
 	cmd[1] = 0;

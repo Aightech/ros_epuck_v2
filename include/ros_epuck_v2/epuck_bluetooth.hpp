@@ -19,6 +19,7 @@ int get_values(char *str, int len, int *val);
 
 int cmd_get_acc(char *str);//[-'a'] : get the code to get Accel
 int cmd_get_bat(char *str);//[-'b'] : get battery
+int cmd_get_spd(char *cmd);
 int cmd_set_spd(char *cmd, int speedLeft, int speedRight);//[-'D'][...] : get the code to set speed 
 int cmd_get_gyr(char *cmd);//[-'g'] : get the code to get gyr
 int cmd_get_cam(char *cmd);//[-'I'] : get the code to get cam
