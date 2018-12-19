@@ -63,7 +63,7 @@ Now you can use /dev/rfcomm0 to connect to the e-puck2.
   sudo apt install screen
 ```
 ```bash
-  sudo screen /dev/rfcomm0
+  screen /dev/rfcomm0
 ```
 Enter the letter 'A' then [ret] several times to send the ascii character 'A' to the epuck. It should return the values 
 ```bash
@@ -73,6 +73,18 @@ a,2053,2018,2791
 ...
 ```
 
-refer to http://www.gctronic.com/doc/index.php/Advanced_sercom_protocol to see other ascii commands
+refer to http://www.gctronic.com/doc/index.php/Advanced_sercom_protocol to see other ascii commands.
+
+If the screen command gives you :
+```bash
+[screen is terminating]
+```
+you might not have the right permission. To set the right permission you can do :
+```bash
+sudo chmod a+w /dev/rfcomm0 
+```
+
+
+
 
 ---
