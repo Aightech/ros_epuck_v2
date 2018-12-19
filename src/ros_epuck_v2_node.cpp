@@ -1,6 +1,4 @@
 #include "ros/ros.h"
-#include "geometry_msgs/Twist.h"
-#include "sensor_msgs/Joy.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,16 +7,8 @@
 #include "ros_epuck_v2/ros_epuck_v2.hpp"
 #include "ros_epuck_v2/epuck_bluetooth.hpp"
 
-#define MOTOR1 0
-#define MOTOR2 1
-#define IR_SENSOR 2
-#define NB_IR_SENSORS 8
 
-int rate = 10; //10 Hz
-float speed_left = 0.0;
-float speed_right = 0.0;
-
-
+int rate = 10; //10 Hz 
 
 
 int main(int argc, char* argv[])
@@ -28,10 +18,11 @@ int main(int argc, char* argv[])
 	ros::NodeHandle n;
         
 	ros::Rate loop_rate(rate);
-	
-	Epuck epuck(n,"/dev/rfcomm0");
-	//	std::cout << "hey" << std::endl;
 
+	//create a epuck object that try to connect to the epuck link to the path given
+	Epuck epuck(n,"/dev/rfcomm0");
+
+	//update the state of the epuck indefinately
 	while(ros::ok())
 	{
 		ros::spinOnce();
