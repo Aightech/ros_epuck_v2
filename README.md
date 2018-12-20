@@ -81,10 +81,28 @@ If the screen command gives you :
 ```
 you might not have the right permission. To set the right permission you can do :
 ```bash
-sudo chmod a+w /dev/rfcomm0 
+sudo chmod a+rwx /dev/rfcomm0 
+```
+
+---
+
+## ROS
+To run the node just execute:
+```bash
+rosrun ros_epuck_v2 ros_epuck_v2_node 
+[INFO EPUCK] Connected ...
+[INFO EPUCK] running ... [       o  ]
+```
+when the "[INFO EPUCK] running ... [       o  ]" prompt appears the node is working.
+
+You can echo the different sensors:
+```bash
+rostopic echo /lasers
+```
+
+or publish on the speed topic to make the epuck move:
+```bash
+rostopic pub /simu_fastsim/speed_right std_msgs/Float32 "data: 0.4" 
 ```
 
 
-
-
----
