@@ -154,7 +154,7 @@ void Epuck::update_IR_sensors(int *IR_values)
  **/
 void Epuck::init_lasers()
 {
-	m_lasers_pub = m_node.advertise<std_msgs::Float32MultiArray>("lasers", 10);
+	m_lasers_pub = m_node.advertise<std_msgs::Float32MultiArray>("/simu_fastsim/lasers", 10);
 }
 
 /**
@@ -164,7 +164,7 @@ void Epuck::update_lasers(int *IR_values)
 {
     std_msgs::Float32MultiArray laser_msg;
     float val;
-    for (size_t i = 5; i < 5+6; ++i)//clip the value beetween 0 and 100 
+    for (size_t i = 5; i < 5+8; ++i)//clip the value beetween 0 and 100 
 	    laser_msg.data.push_back( ( (val=IR_MODEL(IR_values[i%8]))>0.1)?-1:(val<0.01)?0:val*1000 );
     m_lasers_pub.publish(laser_msg);
 }
