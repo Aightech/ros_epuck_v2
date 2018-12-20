@@ -81,7 +81,7 @@ If the screen command gives you :
 ```
 you might not have the right permission. To set the right permission you can do :
 ```bash
-sudo chmod a+w /dev/rfcomm0 
+sudo chmod a+rwx /dev/rfcomm0 
 ```
 
 ---
