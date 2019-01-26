@@ -12,6 +12,8 @@
 #define IR_MIN_RANGE 0.005
 #define IR_MAX_RANGE 0.05
 #define IR_FIELD_VIEW 0.26
+
+#define RAD_PER_STEP 0.00628
 #define IR_MODEL(X)  0.5/sqrt(X)
 
 /**
@@ -46,29 +48,43 @@ Epuck::Epuck(ros::NodeHandle &n, const char * path)
 
 void Epuck::update()
 {
-	char buff[20];
-	int len = 0;
+	
 
 	//
 	//Fill the local buffer with the differents comands
 	//
+
+	bool ACC_ENB = false;
+	bool BAT_ENB = false;
+	bool MOT_ENB = true;
+	bool GYR_ENB = false;
+	bool CAM_ENB = false;
+	bool LED_ENB = false;
+	bool MIC_ENB = false;
+	bool TMP_ENB = false;
+	bool IRS_ENB = true;
+
+	char buff[30];
+	int len = 0;
 	
-	//if(1)	len += cmd_get_acc(buff+len);                         	//[-'a'] : get the code to get Accel
-	//if(1)	len += cmd_get_bat(buff+len);                         	//[-'b'] : get battery
-	if(1)	len += cmd_set_spd(buff+len,m_speedLeft,m_speedRight);	//[-'D'][...] : get the code to set speed 
-	if(1)	len += cmd_get_spd(buff+len);                         	//[-'E'] : get the code to get speed 
-	//if(1)	len += cmd_get_gyr(buff+len);                         	//[-'g'] : get the code to get gyr
-	//if(1)	len += cmd_get_cam(buff+len);                         	//[-'I'] : get the code to get cam
+	std::cout << "tets" << std::endl;
+
+	if(ACC_ENB)	len += cmd_get_acc(buff+len);                         	//[-'a'] : get the code to get Accel
+	if(BAT_ENB)	len += cmd_get_bat(buff+len);                         	//[-'b'] : get battery
+	if(MOT_ENB)	len += cmd_set_spd(buff+len,m_speedLeft,m_speedRight);	//[-'D'][...] : get the code to set speed 
+	if(MOT_ENB)	len += cmd_get_spd(buff+len);                         	//[-'E'] : get the code to get speed 
+	if(GYR_ENB)	len += cmd_get_gyr(buff+len);                         	//[-'g'] : get the code to get gyr
+	if(CAM_ENB)	len += cmd_get_cam(buff+len);                         	//[-'I'] : get the code to get cam
 
 	//for(int i=0;i<NB_LED;i++)
 	//if(1)	len += cmd_set_led(buff+len,i,led_state[i]);          	//[-'L'][n][state] : get the code to set LEDs
 	
 	//if(1)	len += cmd_get_flr(buff+len);                         	//[-'M'] : get the code to get floor sensor
-	if(1)	len += cmd_get_sIR(buff+len);                         	//[-'N'] : get the code to get IR sensors states
+	if(IRS_ENB)	len += cmd_get_sIR(buff+len);                         	//[-'N'] : get the code to get IR sensors states
 	//if(1)	len += cmd_get_lgt(buff+len);                         	//[-'O'] : get the code to get light ambient state
 	//if(1)	len += cmd_set_mot(buff+len);                         	//[-'P'] : get the code to set motor step
-	//if(1)	len += cmd_get_mot(buff+len);                         	//[-'Q'] : get the code to get motor step
-	//if(1)	len += cmd_get_tmp(buff+len);                         	//[-'t'] : get the code to get temperature
+	if(MOT_ENB)	len += cmd_get_mot(buff+len);                         	//[-'Q'] : get the code to get motor step
+	if(TMP_ENB)	len += cmd_get_tmp(buff+len);                         	//[-'t'] : get the code to get temperature
 	//if(1)	len += cmd_get_mcA(buff+len);                         	//[-'u'] : get the code to get microphone amplitude
 	//if(1)	len += cmd_get_mcB(buff+len);                         	//[-'U'] : get the code to get microphone buffer
 
@@ -77,26 +93,51 @@ void Epuck::update()
 	int values[10];
 	int n = recv_rep(m_epuck_fd,buff);
 	if(n>-1)
-	{
-		//printSHORT(buff,n);
+		{
+			//printSHORT(buff,n);
 		
-		char str[] = "o        ";
-		for(int i=0;i<10;i++) str[i]= (i==abs((m_time%10 - (m_time/10)%2*9)%10))?'o':' ';
-		std::cout << "[INFO EPUCK] running ... [" << str << "]"  <<"\xd"<<std::flush;
+			char str[] = "o        ";
+			for(int i=0;i<10;i++) str[i]= (i==abs((m_time%10 - (m_time/10)%2*9)%10))?'o':' ';
+			std::cout << "[INFO EPUCK] running ... [" << str << "]"  <<"\xd"<<std::flush;
 
-		//send requests of the differents actuator and get the vvalues of the sensors
-		get_values(buff,n-1,values);
+			//send requests of the differents actuator and get the vvalues of the sensors
+			get_values(buff,n-1,values);
 
-		//update the different topic
-		update_IR_sensors(values+2);
-		update_laserScan(values+2);
-		update_lasers(values+2);
-	}
-	m_time++;
-//	int values[8]={100,0,0,0,0,0,0,0};
-//	update_laserScan(values);
+	
+			int offset =0;
+	  
+			//update the different topic
+			if(ACC_ENB)
+				offset+=3;
+			if(BAT_ENB)
+				offset+=2;
+			if(MOT_ENB)
+				offset+=2;
+			if(GYR_ENB)
+				offset+=3;
+			if(CAM_ENB)
+				offset+=10; //should get the size of the camera image first
+			
+			if(IRS_ENB)
+				{
+					update_IR_sensors(values+offset);
+					update_laserScan(values+offset);
+					update_lasers(values+offset);
+					offset+=8;
+				}
+			if(MOT_ENB)
+				{
+					//	update_pos(values+offset);
+					offset+=2;
+				}
+			if(TMP_ENB)
+				offset+=2;
+			
+			m_time++;
+			//	int values[8]={100,0,0,0,0,0,0,0};
+			//	update_laserScan(values);
+		}
 }
-
 
 /**
  * initialize IR sensors:
@@ -165,8 +206,76 @@ void Epuck::update_lasers(int *IR_values)
     std_msgs::Float32MultiArray laser_msg;
     float val;
     for (size_t i = 5; i < 5+8; ++i)//clip the value beetween 0 and 100 
-	    laser_msg.data.push_back( ( (val=IR_MODEL(IR_values[i%8]))>0.1)?-1:(val<0.01)?0:val*1000 );
+	    laser_msg.data.push_back( ( (val=IR_MODEL(IR_values[i%8]))>0.1)?-1:(val<0.01)?0.01:val*1000 );
     m_lasers_pub.publish(laser_msg);
+}
+
+/**
+ * update the pos of the robot :
+ **/
+void Epuck::update_pos(int *pos_values)
+{
+	//std_msgs::Float32MultiArray laser_msg;
+	// float val;
+	// for (size_t i = 5; i < 5+8; ++i)//clip the value beetween 0 and 100 
+	// 	    laser_msg.data.push_back( ( (val=IR_MODEL(IR_values[i%8]))>0.1)?-1:(val<0.01)?0.01:val*1000 );
+	// m_lasers_pub.publish(laser_msg);
+        
+	int diff_stp_rot[2];
+        for(int i = 0;i<2;i++)
+		{
+			diff_stp_rot[i] = m_stp_rot[i] - pos_values[i];
+			m_stp_rot[i] =  pos_values[i];
+		}
+	
+	
+        double diff_angular_speed = m_wheel_radius*(diff_stp_rot[0] - diff_stp_rot[1])*RAD_PER_STEP/m_diameter;   // radiant.
+	double diff_linear_speed =  m_wheel_radius*(diff_stp_rot[0] + diff_stp_rot[1])*RAD_PER_STEP/2; //meters
+
+        m_pos[0] += diff_linear_speed*cos(m_pos[2] + diff_angular_speed/2);   // meters
+	m_pos[1] += diff_linear_speed*sin(m_pos[2] + diff_angular_speed/2);
+	m_pos[2] += diff_angular_speed;
+        
+
+        // Publish the odometry message over ROS.
+        m_odomMsg.header.stamp = ros::Time::now();
+        m_odomMsg.pose.pose.position.x = m_pos[0];
+	m_odomMsg.pose.pose.position.y = m_pos[1];
+	m_odomMsg.pose.pose.position.z = 0;
+	
+        // Since all odometry is 6DOF we'll need a quaternion created from yaw.
+        geometry_msgs::Quaternion odomQuat = tf::createQuaternionMsgFromYaw(m_pos[2]);
+        m_odomMsg.pose.pose.orientation = odomQuat;
+        m_currentTime = ros::Time::now();
+        m_odomMsg.twist.twist.linear.x = diff_linear_speed / ((m_currentTime-m_lastTime).toSec());  //linear distance covered in meters 
+        m_odomMsg.twist.twist.angular.z = diff_angular_speed / ((m_currentTime-m_lastTime).toSec());  //angular distance covered in radiant.
+        m_lastTime = ros::Time::now();
+
+        m_odom_pub.publish(m_odomMsg);
+        
+        
+	m_odomTrans.header.stamp = m_odomMsg.header.stamp;
+        m_odomTrans.transform.translation.x = m_pos[0];
+        m_odomTrans.transform.translation.y = m_pos[1];
+        m_odomTrans.transform.translation.z = 0.0;
+        m_odomTrans.transform.rotation = odomQuat;
+	m_tf_transform.sendTransform(m_odomTrans);
+}
+
+/**
+ * initialize position topics:
+ **/
+void Epuck::init_position()
+{
+	m_odomMsg.header.stamp = ros::Time::now();
+        m_odomMsg.header.frame_id = "odom";
+        std::stringstream ss;
+	ss.str("");
+        ss  << "epuckv2/base_link";
+	m_odomMsg.child_frame_id = ss.str();
+   
+        m_odomTrans.header.frame_id = m_odomMsg.header.frame_id;
+        m_odomTrans.child_frame_id = m_odomMsg.child_frame_id;
 }
 
 /**
@@ -245,7 +354,7 @@ void Epuck::update_laserScan(int *IR_values)
  **/
 void Epuck::init_cmdSpeedLeft()
 {
-	subCmdSpdLeft = m_node.subscribe("/simu_fastsim/speed_left", 10, &Epuck::speed_leftCallback,this);
+	m_cmdSpdLeft_sub = m_node.subscribe("/speed_left", 10, &Epuck::speed_leftCallback,this);
 }
 
 /**
@@ -254,7 +363,16 @@ void Epuck::init_cmdSpeedLeft()
 void Epuck::init_cmdSpeedRight()
 {
 	
-	subCmdSpdRight = m_node.subscribe("/simu_fastsim/speed_right", 10,&Epuck::speed_rightCallback,this);
+	m_cmdSpdRight_sub = m_node.subscribe("/speed_right", 10,&Epuck::speed_rightCallback,this);
+}
+
+/**
+ * initialize CmdVel subscriber:
+ **/
+void Epuck::init_cmdVel()
+{
+	
+	m_cmdVel_sub = m_node.subscribe("/cmd_vel", 10,&Epuck::cmd_velCallback,this);
 }
 
 /**
@@ -273,4 +391,17 @@ void Epuck::speed_rightCallback(const std_msgs::Float32::ConstPtr& msg)
 {
 	float conv = msg->data*1000/0.8;
 	m_speedRight = conv;
+}
+
+/**
+ * callback function use when the left wheel tipic is updated:
+ **/
+void Epuck::cmd_velCallback(const geometry_msgs::Twist::ConstPtr& msg)
+{
+	float conv = 0;//msg->data*1000/0.8;
+	float lin = msg->linear.x;
+	float rot = msg->angular.z;
+	float L = 1;
+	m_speedLeft = (lin-L*rot);
+	m_speedRight = (lin+L*rot);
 }

@@ -8,6 +8,19 @@
 #include "std_msgs/Float32.h"
 #include "std_msgs/Float32MultiArray.h"
 
+// #include <sensor_msgs/Range.h>
+// #include <sensor_msgs/Image.h>
+#include <sensor_msgs/Imu.h>
+#include <nav_msgs/Odometry.h>
+// #include <geometry_msgs/Twist.h>
+// #include <std_msgs/UInt8MultiArray.h>
+#include <tf/transform_broadcaster.h>
+#include <visualization_msgs/Marker.h>
+// #include <cv_bridge/cv_bridge.h>
+// #include <sensor_msgs/image_encodings.h>
+// #include <opencv/cv.h>
+// #include <sensor_msgs/LaserScan.h>
+
 class Epuck
 {
 public:
@@ -42,6 +55,12 @@ public:
 
 	void init_cmdSpeedRight();
 
+	void init_cmdVel();
+	void init_position();
+	void update_pos(int *pos_values);
+
+	void cmd_velCallback(const geometry_msgs::Twist::ConstPtr& msg);
+
 	void speed_leftCallback(const std_msgs::Float32::ConstPtr& msg);
 	void speed_rightCallback(const std_msgs::Float32::ConstPtr& msg);
 
@@ -55,6 +74,14 @@ private:
 	int m_speedLeft=0;
 	int m_speedRight=0;
 	ros::NodeHandle m_node;
+	std::string m_name;
+
+	double m_wheel_radius = 0.02;
+	double m_diameter = 0.035;
+
+	double m_stp_rot[2];//motors steps
+	double m_pos[3];//x,y,theta
+	ros::Time m_currentTime, m_lastTime;
 	
 	ros::Publisher m_IR_sensors_pub[8];
 	sensor_msgs::Range m_IR_sensors_msg[8];
@@ -64,8 +91,29 @@ private:
 
 	ros::Publisher m_lasers_pub;
 
-	ros::Subscriber subCmdSpdLeft;
-	ros::Subscriber subCmdSpdRight;
+	geometry_msgs::Twist cmd_vel;
+	ros::Subscriber m_cmdVel_sub;
+	
+	ros::Subscriber m_cmdSpdLeft_sub;
+	ros::Subscriber m_cmdSpdRight_sub;
+
+	
+	ros::Publisher m_odom_pub;
+	nav_msgs::Odometry m_odomMsg;
+	geometry_msgs::TransformStamped m_odomTrans;
+	tf::TransformBroadcaster m_tf_transform;
+	
+	ros::Publisher imagePublisher;
+	ros::Publisher accelPublisher;
+
+	
+	sensor_msgs::Imu accelMsg;
+	ros::Publisher motorSpeedPublisher;
+	visualization_msgs::Marker motorSpeedMsg;
+	ros::Publisher microphonePublisher;
+	visualization_msgs::Marker microphoneMsg;
+	ros::Publisher floorPublisher;
+	visualization_msgs::Marker floorMsg;
 
   
 
