@@ -76,10 +76,12 @@ private:
 	ros::NodeHandle m_node;
 	std::string m_name;
 
-	double m_wheel_radius = 0.02;
-	double m_diameter = 0.035;
+	double m_wheel_radius = 0.020515;
+	double m_diameter = 0.0525;
 
-	double m_stp_rot[2];//motors steps
+	int m_overflow_stp_rot[2];
+	int m_stp_rot_int[2];
+	long m_stp_rot_long[2];//motors steps
 	double m_pos[3];//x,y,theta
 	ros::Time m_currentTime, m_lastTime;
 	

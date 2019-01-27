@@ -154,11 +154,15 @@ int cmd_get_lgt(char *cmd)//[-'O'] : get the code to get light ambient state
 	cmd[1] = 0;
 	return 1;
 }
-int cmd_set_mot(char *cmd)//[-'P'] : get the code to set motor step
+int cmd_set_mot(char *cmd, int left_stp, int right_stp)//[-'P'] : get the code to set motor step
 {
 	cmd[0] = -'P';
-	cmd[1] = 0;
-	return 1;
+	cmd[1] = left_stp&0xFF;
+	cmd[2] = (left_stp>>8)&0xFF;
+	cmd[3] = right_stp&0xFF;
+	cmd[4] = (right_stp>>8)&0xFF;
+	cmd[5] = 0;
+	return 5;
 }
 
 int cmd_get_mot(char *cmd)//[-'Q'] : get the code to get motor step

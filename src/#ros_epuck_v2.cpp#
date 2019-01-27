@@ -269,7 +269,7 @@ void Epuck::update_pos(int *pos_values)
 	
 	
         double diff_angular_speed = m_wheel_radius*(diff_stp_rot[0] - diff_stp_rot[1])*RAD_PER_STEP/m_diameter;   // radiant.
-	double diff_linear_speed =  m_wheel_radius*(diff_stp_rot[0] + diff_stp_rot[1])*RAD_PER_STEP/2; //meters
+	double diff_linear_speed =  m_wheel_radius*(diff_stp_rot[0] + diff_stp_rot[1])*RAD_PER_STEP/2.0; //meters
 	// std::cout << std::endl;
 	// std::cout << 	diff_stp_rot[0] << std::endl;
 	// std::cout << 	diff_stp_rot[1] << std::endl;
